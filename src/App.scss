@@ -1,0 +1,41 @@
+ul, li {
+  padding: 0;
+  margin: 0;
+}
+ul {
+  list-style-type: none;
+}
+
+main {
+  padding: 50px;
+}
+
+.calendar {
+  display: flex;
+}
+
+.calendar__Day {
+  border: 2px solid black;
+  width: 130px;
+  margin-left: -2px;
+}
+
+.calendar__DayNameDate {
+  text-align: center;
+  border-bottom: 2px solid black;
+  span {
+    display: block;
+  }
+}
+
+.calendar__Periods {
+  li {
+    height: 25px;
+    &:not(:last-child) {
+      border-bottom: 1px solid black;
+    }
+    &.enabled {
+      cursor: pointer;
+    }
+  }
+}
