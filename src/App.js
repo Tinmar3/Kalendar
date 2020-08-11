@@ -1,6 +1,8 @@
 import './App.scss'
 import React, { Component } from 'react'
-import { format, add, set, areIntervalsOverlapping, isEqual } from 'date-fns'
+import { add, set, areIntervalsOverlapping, isEqual } from 'date-fns'
+import DayWorkingDetails from './calendar/meta/DayWorkingDetails'
+import { MAX_WEEKLY_PERIODS, PERIOD_LENGTH_MINS, MAX_WORK_HOUR, MIN_WORK_HOUR } from './calendar/meta/Consts'
 
 export default class App extends Component {
   constructor (props) {
@@ -9,16 +11,8 @@ export default class App extends Component {
       selectedPeriods: []
     }
 
-    this.MAX_WEEKLY_PERIODS = 2
-    this.MAX_DAILY_PERIODS = 1
-    this.PERIOD_LENGTH_MINS = 30 // period length in minutes
-    this.PAUSE_LENGTH_MINS = 30 // pause length in minutes
-    this.MAX_WORK_HOUR = 19
-    this.MIN_WORK_HOUR = 8
-    this.DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-
-    this.workTimeOdd = { start: 13, end: this.MAX_WORK_HOUR, pauseStart: 16 }
-    this.workTimeEven = { start: this.MIN_WORK_HOUR, end: 14, pauseStart: 11 }
+    this.nextSevenDaysDetails = this.getNextSevenDaysDetails()
+    this.dailyPeriodsCount = (MAX_WORK_HOUR - MIN_WORK_HOUR) * (60 / PERIOD_LENGTH_MINS)
 
     this.MOCK_SELECTED_PERIODS = [
       {
@@ -38,79 +32,33 @@ export default class App extends Component {
     ]
   }
 
-  get dailyPeriodsCount () {
-    return (this.MAX_WORK_HOUR - this.MIN_WORK_HOUR) * (60 / this.PERIOD_LENGTH_MINS)
-  }
-
-  get nextSevenDays () {
+  getNextSevenDaysDetails () {
     const nextSevenDays = []
     for (let i = 1; i <= 7; i++) {
       nextSevenDays.push(add(new Date(), { days: i }))
       // nextSevenDays.push(add(new Date(2020, 7, 17), { days: i }))
     }
-    return nextSevenDays
+    return nextSevenDays.map(day => new DayWorkingDetails(day))
   }
 
   get allAvailableWeekPeriodsSelected () {
-    return this.state.selectedPeriods.length === this.MAX_WEEKLY_PERIODS
+    return this.state.selectedPeriods.length === MAX_WEEKLY_PERIODS
   }
 
-  // get randomDates () {
-  //   function randomDate (start, end) {
-  //     return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()))
-  //   }
-  //   const dates = []
-  //   for (let i = 0; i < 15; i++) {
-  //     const thisRandomDate = randomDate(this.nextSevenDays[0], this.nextSevenDays[this.nextSevenDays.length - 1])
-  //     const { workingPeriods } = this.getDayWorkingDetails(thisRandomDate)
-
-  //     console.log(workingPeriods)
-
-  //     dates.push(randomDate(this.nextSevenDays[0], this.nextSevenDays[this.nextSevenDays.length - 1]))
-  //   }
-  //   return dates
-  // }
-
-  getDayWorkingDetails (dateObj) {
-    const thisDate = new Date(dateObj)
-    const isSunday = thisDate.getDay() === 0
-    const isSaturday = thisDate.getDay() === 6
-    const isOddDate = !!(thisDate.getDate() % 2)
-    const isNonWorkingDay = isSunday || (isSaturday && isOddDate)
-    const thisWorkTime = !isNonWorkingDay && (isOddDate ? this.workTimeOdd : this.workTimeEven)
-    let workingPeriods = {}
-    if (!isNonWorkingDay) {
-      const thisPauseStart = set(thisDate, { hours: thisWorkTime.pauseStart, minutes: 0 })
-      workingPeriods = {
-        beforePause: {
-          start: set(thisDate, { hours: thisWorkTime.start, minutes: 0 }),
-          end: thisPauseStart
-        },
-        afterPause: {
-          start: add(thisPauseStart, { minutes: this.PAUSE_LENGTH_MINS }),
-          end: set(thisDate, { hours: thisWorkTime.end, minutes: 0 })
-        }
-      }
-    }
-    return { thisDate, isNonWorkingDay, workingPeriods }
-  }
-
-  renderPeriods (dateObj) {
+  renderPeriods (dayDetails) {
     const dayPeriods = []
-    const { thisDate, isNonWorkingDay, workingPeriods } = this.getDayWorkingDetails(dateObj)
-
     for (let i = 0; i < this.dailyPeriodsCount; i++) {
-      if (isNonWorkingDay) {
+      if (dayDetails.isNonWorkingDay) {
         dayPeriods.push(<li key={i} className="notWorking"></li>)
       } else {
-        const thisPeriodStart = add(set(thisDate, { hours: this.MIN_WORK_HOUR, minutes: 0 }), { minutes: i * this.PERIOD_LENGTH_MINS })
+        const thisPeriodStart = add(set(dayDetails.date, { hours: MIN_WORK_HOUR, minutes: 0 }), { minutes: i * PERIOD_LENGTH_MINS })
         const thisPeriod = {
           start: thisPeriodStart,
-          end: add(thisPeriodStart, { minutes: this.PERIOD_LENGTH_MINS })
+          end: add(thisPeriodStart, { minutes: PERIOD_LENGTH_MINS })
         }
-        if (areIntervalsOverlapping(thisPeriod, workingPeriods.beforePause) || areIntervalsOverlapping(thisPeriod, workingPeriods.afterPause)) {
+        if (areIntervalsOverlapping(thisPeriod, dayDetails.workingPeriods.beforePause) || areIntervalsOverlapping(thisPeriod, dayDetails.workingPeriods.afterPause)) {
           dayPeriods.push(<li key={i} className="available"></li>)
-        } else if (isEqual(thisPeriod.start, workingPeriods.beforePause.end) && isEqual(thisPeriod.end, workingPeriods.afterPause.start)) {
+        } else if (isEqual(thisPeriod.start, dayDetails.workingPeriods.beforePause.end) && isEqual(thisPeriod.end, dayDetails.workingPeriods.afterPause.start)) {
           dayPeriods.push(<li key={i} className="pause"></li>)
         } else {
           dayPeriods.push(<li key={i} className="notWorking"></li>)
@@ -123,9 +71,9 @@ export default class App extends Component {
 
   renderPeriodHours () {
     const hours = []
-    for (let i = this.MIN_WORK_HOUR; i <= this.MAX_WORK_HOUR; i++) {
+    for (let i = MIN_WORK_HOUR; i <= MAX_WORK_HOUR; i++) {
       hours.push(<li key={i + 'full'}>{('0' + i).slice(-2) + ':00'}</li>)
-      if (i < this.MAX_WORK_HOUR) {
+      if (i < MAX_WORK_HOUR) {
         hours.push(<li key={i + 'half'}>{('0' + i).slice(-2) + ':30'}</li>)
       }
     }
@@ -140,17 +88,15 @@ export default class App extends Component {
           <ul className="calendar__Hours">
             { this.renderPeriodHours() }
           </ul>
-          {this.nextSevenDays.map(day =>
-            <div key={day.getDate()} className="calendar__Day">
-              <div className="calendar__DayNameDate">
-                <span>{ this.DAYS[day.getDay()] }</span>
-                <span>{ format(day, 'MM/dd/yyyy') }</span>
-              </div>
-              <ul className="calendar__Periods">
-                {this.renderPeriods(day)}
-              </ul>
+          { this.nextSevenDaysDetails.map(day => <div key={ day.dateToString } className="calendar__Day">
+            <div className="calendar__DayNameDate">
+              <span>{ day.dayName }</span>
+              <span>{ day.dateToString }</span>
             </div>
-          )}
+            <ul className="calendar__Periods">
+              { this.renderPeriods(day) }
+            </ul>
+          </div>) }
         </div>
       </main>
     )
