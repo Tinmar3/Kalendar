@@ -1,6 +1,6 @@
 import './App.scss'
 import React, { Component } from 'react'
-import { format, add, set, areIntervalsOverlapping } from 'date-fns'
+import { format, add, set, areIntervalsOverlapping, isEqual } from 'date-fns'
 
 export default class App extends Component {
   constructor (props) {
@@ -55,25 +55,49 @@ export default class App extends Component {
     return this.state.selectedPeriods.length === this.MAX_WEEKLY_PERIODS
   }
 
-  renderPeriods (dateObj) {
-    const dayPeriods = []
+  // get randomDates () {
+  //   function randomDate (start, end) {
+  //     return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()))
+  //   }
+  //   const dates = []
+  //   for (let i = 0; i < 15; i++) {
+  //     const thisRandomDate = randomDate(this.nextSevenDays[0], this.nextSevenDays[this.nextSevenDays.length - 1])
+  //     const { workingPeriods } = this.getDayWorkingDetails(thisRandomDate)
+
+  //     console.log(workingPeriods)
+
+  //     dates.push(randomDate(this.nextSevenDays[0], this.nextSevenDays[this.nextSevenDays.length - 1]))
+  //   }
+  //   return dates
+  // }
+
+  getDayWorkingDetails (dateObj) {
     const thisDate = new Date(dateObj)
-    const isSunday = dateObj.getDay() === 0
-    const isSaturday = dateObj.getDay() === 6
-    const isOddDate = !!(dateObj.getDate() % 2)
+    const isSunday = thisDate.getDay() === 0
+    const isSaturday = thisDate.getDay() === 6
+    const isOddDate = !!(thisDate.getDate() % 2)
     const isNonWorkingDay = isSunday || (isSaturday && isOddDate)
-    const thisWorkTime = (!isNonWorkingDay && isOddDate) ? this.workTimeOdd : this.workTimeEven
-    const thisPauseStart = set(thisDate, { hours: thisWorkTime.pauseStart, minutes: 0 })
-    const workingPeriods = {
-      beforePause: {
-        start: set(thisDate, { hours: thisWorkTime.start, minutes: 0 }),
-        end: thisPauseStart
-      },
-      afterPause: {
-        start: add(thisPauseStart, { minutes: this.PAUSE_LENGTH_MINS }),
-        end: set(thisDate, { hours: thisWorkTime.end, minutes: 0 })
+    const thisWorkTime = !isNonWorkingDay && (isOddDate ? this.workTimeOdd : this.workTimeEven)
+    let workingPeriods = {}
+    if (!isNonWorkingDay) {
+      const thisPauseStart = set(thisDate, { hours: thisWorkTime.pauseStart, minutes: 0 })
+      workingPeriods = {
+        beforePause: {
+          start: set(thisDate, { hours: thisWorkTime.start, minutes: 0 }),
+          end: thisPauseStart
+        },
+        afterPause: {
+          start: add(thisPauseStart, { minutes: this.PAUSE_LENGTH_MINS }),
+          end: set(thisDate, { hours: thisWorkTime.end, minutes: 0 })
+        }
       }
     }
+    return { thisDate, isNonWorkingDay, workingPeriods }
+  }
+
+  renderPeriods (dateObj) {
+    const dayPeriods = []
+    const { thisDate, isNonWorkingDay, workingPeriods } = this.getDayWorkingDetails(dateObj)
 
     for (let i = 0; i < this.dailyPeriodsCount; i++) {
       if (isNonWorkingDay) {
@@ -86,6 +110,8 @@ export default class App extends Component {
         }
         if (areIntervalsOverlapping(thisPeriod, workingPeriods.beforePause) || areIntervalsOverlapping(thisPeriod, workingPeriods.afterPause)) {
           dayPeriods.push(<li key={i} className="available"></li>)
+        } else if (isEqual(thisPeriod.start, workingPeriods.beforePause.end) && isEqual(thisPeriod.end, workingPeriods.afterPause.start)) {
+          dayPeriods.push(<li key={i} className="pause"></li>)
         } else {
           dayPeriods.push(<li key={i} className="notWorking"></li>)
         }
@@ -107,7 +133,7 @@ export default class App extends Component {
   }
 
   render () {
-    console.log(this.nextSevenDays)
+    // console.log(this.randomDates)
     return (
       <main>
         <div className="calendar">

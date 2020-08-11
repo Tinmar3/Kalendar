@@ -25,6 +25,7 @@ main {
   text-align: center;
   border-bottom: 2px solid black;
   height: 70px;
+  padding-top: 10px;
   span {
     display: block;
   }
@@ -33,7 +34,7 @@ main {
 .calendar__Hours {
   position: absolute;
     left: -55px;
-    top: 62px;
+    top: 72px;
     font-size: 14px;
   li {
     &:not(:last-child) {
