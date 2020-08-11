@@ -7,11 +7,12 @@ ul {
 }
 
 main {
-  padding: 50px;
+  padding: 50px 120px;
 }
 
 .calendar {
   display: flex;
+  position: relative;
 }
 
 .calendar__Day {
@@ -23,8 +24,21 @@ main {
 .calendar__DayNameDate {
   text-align: center;
   border-bottom: 2px solid black;
+  height: 70px;
   span {
     display: block;
+  }
+}
+
+.calendar__Hours {
+  position: absolute;
+    left: -55px;
+    top: 62px;
+    font-size: 14px;
+  li {
+    &:not(:last-child) {
+      margin-bottom: 7px;
+    }
   }
 }
 
@@ -34,8 +48,14 @@ main {
     &:not(:last-child) {
       border-bottom: 1px solid black;
     }
+    // &:nth-child(2n):not(:last-child) {
+    //   border-bottom: 2px solid black;
+    // }
     &.enabled {
       cursor: pointer;
+    }
+    &.notWorking {
+      background-color: gray;
     }
   }
 }
