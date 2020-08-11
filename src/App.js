@@ -2,7 +2,7 @@ import './App.scss'
 import React, { Component } from 'react'
 import { add, set, areIntervalsOverlapping, isEqual } from 'date-fns'
 import DayWorkingDetails from './calendar/meta/DayWorkingDetails'
-import { MAX_WEEKLY_PERIODS, PERIOD_LENGTH_MINS, MAX_WORK_HOUR, MIN_WORK_HOUR } from './calendar/meta/Consts'
+import { MAX_WEEKLY_PERIODS, PERIOD_LENGTH_MINS, MAX_WORK_HOUR, MIN_WORK_HOUR, DAYS, dailyPeriodsCount } from './calendar/meta/Consts'
 
 export default class App extends Component {
   constructor (props) {
@@ -12,7 +12,7 @@ export default class App extends Component {
     }
 
     this.nextSevenDaysDetails = this.getNextSevenDaysDetails()
-    this.dailyPeriodsCount = (MAX_WORK_HOUR - MIN_WORK_HOUR) * (60 / PERIOD_LENGTH_MINS)
+    this.randomPeriods = this.getRandomPeriods()
 
     this.MOCK_SELECTED_PERIODS = [
       {
@@ -45,9 +45,18 @@ export default class App extends Component {
     return this.state.selectedPeriods.length === MAX_WEEKLY_PERIODS
   }
 
+  getRandomPeriods () {
+    const workingDaysNumber = this.nextSevenDaysDetails.find(day => day.dayName === DAYS[6]).isNonWorkingDay ? 5 : 6
+    const randomPeriods = []
+    for (let i = 0; i < 15; i++) {
+      randomPeriods.push({ dayNumber: Math.round(Math.random() * workingDaysNumber), periodNumber: Math.round(Math.random() * 12) })
+    }
+    console.log(randomPeriods)
+  }
+
   renderPeriods (dayDetails) {
     const dayPeriods = []
-    for (let i = 0; i < this.dailyPeriodsCount; i++) {
+    for (let i = 0; i < dailyPeriodsCount; i++) {
       if (dayDetails.isNonWorkingDay) {
         dayPeriods.push(<li key={i} className="notWorking"></li>)
       } else {
@@ -81,7 +90,7 @@ export default class App extends Component {
   }
 
   render () {
-    // console.log(this.randomDates)
+    // console.log(this.randomPeriods)
     return (
       <main>
         <div className="calendar">

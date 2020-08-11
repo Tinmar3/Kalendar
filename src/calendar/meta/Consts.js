@@ -8,3 +8,4 @@ export const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Fr
 
 export const workTimeOdd = { start: 13, end: MAX_WORK_HOUR, pauseStart: 16 }
 export const workTimeEven = { start: MIN_WORK_HOUR, end: 14, pauseStart: 11 }
+export const dailyPeriodsCount = (MAX_WORK_HOUR - MIN_WORK_HOUR) * (60 / PERIOD_LENGTH_MINS)
