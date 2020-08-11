@@ -51,8 +51,15 @@ main {
     // &:nth-child(2n):not(:last-child) {
     //   border-bottom: 2px solid black;
     // }
-    &.enabled {
+    &.available {
       cursor: pointer;
+      background-color: cyan;
+    }
+    &.taken {
+      background-color: darkblue;
+    }
+    &.pause {
+      background-color: yellow;
     }
     &.notWorking {
       background-color: gray;

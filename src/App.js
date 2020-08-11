@@ -1,6 +1,6 @@
 import './App.scss'
 import React, { Component } from 'react'
-import { format, add } from 'date-fns'
+import { format, add, set, areIntervalsOverlapping } from 'date-fns'
 
 export default class App extends Component {
   constructor (props) {
@@ -12,12 +12,13 @@ export default class App extends Component {
     this.MAX_WEEKLY_PERIODS = 2
     this.MAX_DAILY_PERIODS = 1
     this.PERIOD_LENGTH_MINS = 30 // period length in minutes
-    this.PAUSE_LENGTH_MINS = 90 // pause length in minutes
+    this.PAUSE_LENGTH_MINS = 30 // pause length in minutes
     this.MAX_WORK_HOUR = 19
     this.MIN_WORK_HOUR = 8
-    this.WORK_TIME_ODD = { start: 13, end: this.MAX_WORK_HOUR, pauseStart: 16 }
-    this.WORK_TIME_EVEN = { start: this.MIN_WORK_HOUR, end: 14, pauseStart: 11 }
     this.DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+    this.workTimeOdd = { start: 13, end: this.MAX_WORK_HOUR, pauseStart: 16 }
+    this.workTimeEven = { start: this.MIN_WORK_HOUR, end: 14, pauseStart: 11 }
 
     this.MOCK_SELECTED_PERIODS = [
       {
@@ -45,7 +46,6 @@ export default class App extends Component {
     const nextSevenDays = []
     for (let i = 1; i <= 7; i++) {
       nextSevenDays.push(add(new Date(), { days: i }))
-      // console.log(new Date(2020, 8, 17))
       // nextSevenDays.push(add(new Date(2020, 7, 17), { days: i }))
     }
     return nextSevenDays
@@ -59,17 +59,38 @@ export default class App extends Component {
     const dayPeriods = []
     const thisDate = new Date(dateObj)
     const isSunday = dateObj.getDay() === 0
-    const isOddDateSaturday = (dateObj.getDay() === 6 && dateObj.getDate() % 2)
-
-    for (let i = 1; i <= this.dailyPeriodsCount; i++) {
-      if (isSunday || isOddDateSaturday) {
-        dayPeriods.push(<li key={i} className="notWorking"></li>)
-      } else {
-        dayPeriods.push(<li key={i}></li>)
+    const isSaturday = dateObj.getDay() === 6
+    const isOddDate = !!(dateObj.getDate() % 2)
+    const isNonWorkingDay = isSunday || (isSaturday && isOddDate)
+    const thisWorkTime = (!isNonWorkingDay && isOddDate) ? this.workTimeOdd : this.workTimeEven
+    const thisPauseStart = set(thisDate, { hours: thisWorkTime.pauseStart, minutes: 0 })
+    const workingPeriods = {
+      beforePause: {
+        start: set(thisDate, { hours: thisWorkTime.start, minutes: 0 }),
+        end: thisPauseStart
+      },
+      afterPause: {
+        start: add(thisPauseStart, { minutes: this.PAUSE_LENGTH_MINS }),
+        end: set(thisDate, { hours: thisWorkTime.end, minutes: 0 })
       }
     }
 
-    // od datea slagati koje indexe treba bojati, a ne obratno
+    for (let i = 0; i < this.dailyPeriodsCount; i++) {
+      if (isNonWorkingDay) {
+        dayPeriods.push(<li key={i} className="notWorking"></li>)
+      } else {
+        const thisPeriodStart = add(set(thisDate, { hours: this.MIN_WORK_HOUR, minutes: 0 }), { minutes: i * this.PERIOD_LENGTH_MINS })
+        const thisPeriod = {
+          start: thisPeriodStart,
+          end: add(thisPeriodStart, { minutes: this.PERIOD_LENGTH_MINS })
+        }
+        if (areIntervalsOverlapping(thisPeriod, workingPeriods.beforePause) || areIntervalsOverlapping(thisPeriod, workingPeriods.afterPause)) {
+          dayPeriods.push(<li key={i} className="available"></li>)
+        } else {
+          dayPeriods.push(<li key={i} className="notWorking"></li>)
+        }
+      }
+    }
 
     return dayPeriods
   }
