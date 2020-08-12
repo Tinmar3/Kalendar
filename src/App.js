@@ -10,26 +10,8 @@ export default class App extends Component {
     this.state = {
       selectedPeriods: []
     }
-
     this.nextSevenDaysDetails = this.getNextSevenDaysDetails()
     this.randomPeriods = this.getRandomPeriods()
-
-    this.MOCK_SELECTED_PERIODS = [
-      {
-        date: 12,
-        month: 8,
-        year: 2020,
-        hour: 9,
-        minute: 0
-      },
-      {
-        date: 13,
-        month: 8,
-        year: 2020,
-        hour: 17,
-        minute: 30
-      }
-    ]
   }
 
   getNextSevenDaysDetails () {
@@ -47,32 +29,63 @@ export default class App extends Component {
 
   getRandomPeriods () {
     const workingDaysNumber = this.nextSevenDaysDetails.find(day => day.dayName === DAYS[6]).isNonWorkingDay ? 5 : 6
+    const daysRange = { min: 1, max: workingDaysNumber }
     const randomPeriods = []
-    for (let i = 0; i < 15; i++) {
-      randomPeriods.push({ dayNumber: Math.round(Math.random() * workingDaysNumber), periodNumber: Math.round(Math.random() * 12) })
+    let numberOfIterations = 15
+    for (let i = 0; i < numberOfIterations; i++) {
+      const min = Math.ceil(daysRange.min)
+      const max = Math.floor(daysRange.max)
+      const dayNumber = Math.floor(Math.random() * (max - min + 1)) + min
+      const periodNumber = Math.round(Math.random() * 10)
+      if (!randomPeriods.find(period => period.dayNumber === dayNumber && period.periodNumber === periodNumber)) {
+        randomPeriods.push({ dayNumber, periodNumber })
+      } else {
+        numberOfIterations++
+      }
     }
-    console.log(randomPeriods)
+    return randomPeriods
   }
 
-  renderPeriods (dayDetails) {
+  handleAvailablePeriodClick (dayDetails) {
+    console.log(dayDetails)
+  }
+
+  preparePeriodsData (dayDetails) {
     const dayPeriods = []
+    const { workingPeriods, date, isNonWorkingDay } = dayDetails
+    let availablePeriodIndex = -1
     for (let i = 0; i < dailyPeriodsCount; i++) {
-      if (dayDetails.isNonWorkingDay) {
-        dayPeriods.push(<li key={i} className="notWorking"></li>)
-      } else {
-        const thisPeriodStart = add(set(dayDetails.date, { hours: MIN_WORK_HOUR, minutes: 0 }), { minutes: i * PERIOD_LENGTH_MINS })
+      let thisType = 'NOT_WORKING'
+      if (!isNonWorkingDay) {
+        const thisPeriodStart = add(set(date, { hours: MIN_WORK_HOUR, minutes: 0 }), { minutes: i * PERIOD_LENGTH_MINS })
         const thisPeriod = {
           start: thisPeriodStart,
           end: add(thisPeriodStart, { minutes: PERIOD_LENGTH_MINS })
         }
-        if (areIntervalsOverlapping(thisPeriod, dayDetails.workingPeriods.beforePause) || areIntervalsOverlapping(thisPeriod, dayDetails.workingPeriods.afterPause)) {
-          dayPeriods.push(<li key={i} className="available"></li>)
-        } else if (isEqual(thisPeriod.start, dayDetails.workingPeriods.beforePause.end) && isEqual(thisPeriod.end, dayDetails.workingPeriods.afterPause.start)) {
-          dayPeriods.push(<li key={i} className="pause"></li>)
-        } else {
-          dayPeriods.push(<li key={i} className="notWorking"></li>)
+        if (areIntervalsOverlapping(thisPeriod, workingPeriods.beforePause) || areIntervalsOverlapping(thisPeriod, workingPeriods.afterPause)) {
+          thisType = 'AVAILABLE'
+          availablePeriodIndex++
+        } else if (isEqual(thisPeriod.start, workingPeriods.beforePause.end) && isEqual(thisPeriod.end, workingPeriods.afterPause.start)) {
+          thisType = 'PAUSE'
         }
       }
+
+      const isRandomlyTaken = this.randomPeriods.find(period => period.dayNumber === dayDetails.date.getDay() && period.periodNumber === (availablePeriodIndex))
+
+      let cssClass = ''
+      let clickListener
+      if (thisType === 'NOT_WORKING') {
+        cssClass = 'notWorking'
+      } else if (thisType === 'PAUSE') {
+        cssClass = 'pause'
+      } else if (isRandomlyTaken) {
+        cssClass = 'taken'
+      } else if (thisType === 'AVAILABLE') {
+        cssClass = 'available'
+        clickListener = this.handleAvailablePeriodClick.bind(this, dayDetails)
+      }
+
+      dayPeriods.push(<li key={i} className={cssClass} onClick={clickListener}></li>)
     }
 
     return dayPeriods
@@ -103,7 +116,7 @@ export default class App extends Component {
               <span>{ day.dateToString }</span>
             </div>
             <ul className="calendar__Periods">
-              { this.renderPeriods(day) }
+              { this.preparePeriodsData(day) }
             </ul>
           </div>) }
         </div>

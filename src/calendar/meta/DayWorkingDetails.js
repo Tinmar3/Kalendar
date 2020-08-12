@@ -1,4 +1,4 @@
-import { add, set, format, differenceInMinutes } from 'date-fns'
+import { add, set, format } from 'date-fns'
 import { workTimeOdd, workTimeEven, DAYS, PAUSE_LENGTH_MINS } from './Consts'
 
 export default class DayWorkingDetails {
@@ -8,13 +8,6 @@ export default class DayWorkingDetails {
     this._isSaturday = this._date.getDay() === 6
     this._isOddDate = !!(this._date.getDate() % 2)
     this._workingPeriods = this.getWorkingPeriods()
-
-    console.log(this._workingPeriods)
-
-    if (!DayWorkingDetails.dailyPeriodsActiveCount && this._workingPeriods) {
-      const { beforePause, afterPause } = this._workingPeriods
-      DayWorkingDetails.dailyPeriodsActiveCount = (differenceInMinutes(beforePause.end, beforePause.start) + differenceInMinutes(afterPause.end, afterPause.start)) / 30
-    }
   }
 
   workTime () {
