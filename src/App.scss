@@ -65,5 +65,12 @@ main {
     &.notWorking {
       background-color: gray;
     }
+    &.notAvailable {
+      background-color: blue;
+    }
+    &.takenByMe {
+      cursor: pointer;
+      background-color: lightgreen;
+    }
   }
 }

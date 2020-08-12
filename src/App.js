@@ -14,6 +14,10 @@ export default class App extends Component {
     this.randomPeriods = this.getRandomPeriods()
   }
 
+  get allAvailableWeekPeriodsSelected () {
+    return this.state.selectedPeriods.length === MAX_WEEKLY_PERIODS
+  }
+
   getNextSevenDaysDetails () {
     const nextSevenDays = []
     for (let i = 1; i <= 7; i++) {
@@ -23,8 +27,8 @@ export default class App extends Component {
     return nextSevenDays.map(day => new DayWorkingDetails(day))
   }
 
-  get allAvailableWeekPeriodsSelected () {
-    return this.state.selectedPeriods.length === MAX_WEEKLY_PERIODS
+  isPeriodSelectedInThisDay (date) {
+    return this.state.selectedPeriods.find(period => isEqual(period.date, date))
   }
 
   getRandomPeriods () {
@@ -46,14 +50,22 @@ export default class App extends Component {
     return randomPeriods
   }
 
-  handleAvailablePeriodClick (dayDetails) {
-    console.log(dayDetails)
+  handleAvailablePeriodClick ({ dayDetails, index, alreadySelected }) {
+    if (alreadySelected) {
+      this.setState((prevState) => ({
+        selectedPeriods: prevState.selectedPeriods.filter(period => !(isEqual(dayDetails.date, period.date) && period.index === index))
+      }))
+    } else {
+      this.setState((prevState) => ({
+        selectedPeriods: [...prevState.selectedPeriods, { date: dayDetails.date, index }]
+      }))
+    }
   }
 
   preparePeriodsData (dayDetails) {
     const dayPeriods = []
     const { workingPeriods, date, isNonWorkingDay } = dayDetails
-    let availablePeriodIndex = -1
+    let initialyAvailablePeriodIndex = -1 // needed for random periods
     for (let i = 0; i < dailyPeriodsCount; i++) {
       let thisType = 'NOT_WORKING'
       if (!isNonWorkingDay) {
@@ -62,27 +74,35 @@ export default class App extends Component {
           start: thisPeriodStart,
           end: add(thisPeriodStart, { minutes: PERIOD_LENGTH_MINS })
         }
-        if (areIntervalsOverlapping(thisPeriod, workingPeriods.beforePause) || areIntervalsOverlapping(thisPeriod, workingPeriods.afterPause)) {
+        if (this.state.selectedPeriods.find(period => isEqual(period.date, dayDetails.date) && period.index === i)) {
+          thisType = 'TAKEN_BY_ME'
+          initialyAvailablePeriodIndex++
+        } else if (areIntervalsOverlapping(thisPeriod, workingPeriods.beforePause) || areIntervalsOverlapping(thisPeriod, workingPeriods.afterPause)) {
           thisType = 'AVAILABLE'
-          availablePeriodIndex++
+          initialyAvailablePeriodIndex++
         } else if (isEqual(thisPeriod.start, workingPeriods.beforePause.end) && isEqual(thisPeriod.end, workingPeriods.afterPause.start)) {
           thisType = 'PAUSE'
         }
       }
 
-      const isRandomlyTaken = this.randomPeriods.find(period => period.dayNumber === dayDetails.date.getDay() && period.periodNumber === (availablePeriodIndex))
+      const isRandomlyTaken = this.randomPeriods.find(period => period.dayNumber === dayDetails.date.getDay() && period.periodNumber === (initialyAvailablePeriodIndex))
 
       let cssClass = ''
       let clickListener
-      if (thisType === 'NOT_WORKING') {
+      if (thisType === 'TAKEN_BY_ME') {
+        cssClass = 'takenByMe'
+        clickListener = this.handleAvailablePeriodClick.bind(this, { dayDetails, index: i, alreadySelected: true })
+      } else if (thisType === 'NOT_WORKING') {
         cssClass = 'notWorking'
       } else if (thisType === 'PAUSE') {
         cssClass = 'pause'
       } else if (isRandomlyTaken) {
         cssClass = 'taken'
-      } else if (thisType === 'AVAILABLE') {
+      } else if (thisType === 'AVAILABLE' && !this.allAvailableWeekPeriodsSelected && !this.isPeriodSelectedInThisDay(dayDetails.date)) {
         cssClass = 'available'
-        clickListener = this.handleAvailablePeriodClick.bind(this, dayDetails)
+        clickListener = this.handleAvailablePeriodClick.bind(this, { dayDetails, index: i })
+      } else {
+        cssClass = 'notAvailable'
       }
 
       dayPeriods.push(<li key={i} className={cssClass} onClick={clickListener}></li>)
@@ -103,7 +123,6 @@ export default class App extends Component {
   }
 
   render () {
-    // console.log(this.randomPeriods)
     return (
       <main>
         <div className="calendar">
