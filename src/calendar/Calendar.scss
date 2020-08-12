@@ -1,3 +1,5 @@
+$headerHeight: 70px;
+
 .calendar {
     display: flex;
     position: relative;
@@ -13,7 +15,7 @@
   .calendar__DayNameDate {
     text-align: center;
     border-bottom: 2px solid black;
-    height: 70px;
+    height: $headerHeight;
     padding-top: 10px;
     span {
       display: block;
@@ -23,7 +25,8 @@
   .calendar__Hours {
     position: absolute;
       left: -55px;
-      top: 72px;
+      top: $headerHeight;
+      margin-top: 2px;
       font-size: 14px;
     li {
       &:not(:last-child) {

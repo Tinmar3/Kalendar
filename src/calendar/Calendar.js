@@ -62,6 +62,17 @@ export default class Calendar extends Component {
     }
   }
 
+  preparePeriodHours () {
+    const hours = []
+    for (let i = MIN_WORK_HOUR; i <= MAX_WORK_HOUR; i++) {
+      hours.push({ key: i + 'full', periodString: ('0' + i).slice(-2) + ':00' })
+      if (i < MAX_WORK_HOUR) {
+        hours.push({ key: i + 'half', periodString: ('0' + i).slice(-2) + ':30' })
+      }
+    }
+    return hours
+  }
+
   preparePeriodsData (dayDetails) {
     const dayPeriods = []
     const { workingPeriods, date, isNonWorkingDay } = dayDetails
@@ -85,41 +96,31 @@ export default class Calendar extends Component {
         }
       }
 
-      const isRandomlyTaken = this.randomPeriods.find(period => period.dayNumber === dayDetails.date.getDay() && period.periodNumber === (initialyAvailablePeriodIndex))
-
       let cssClass = ''
       let clickListener
-      if (thisType === 'TAKEN_BY_USER') {
+      if (thisType === 'NOT_WORKING') {
+        cssClass = 'notWorking'
+      } else if (thisType === 'TAKEN_BY_USER') {
         cssClass = 'takenByUser'
         clickListener = this.handleAvailablePeriodClick.bind(this, { dayDetails, index: i, alreadySelected: true })
-      } else if (thisType === 'NOT_WORKING') {
-        cssClass = 'notWorking'
       } else if (thisType === 'PAUSE') {
         cssClass = 'pause'
-      } else if (isRandomlyTaken) {
-        cssClass = 'taken'
-      } else if (thisType === 'AVAILABLE' && !this.allAvailableWeekPeriodsSelected && !this.isPeriodSelectedOnThisDay(dayDetails.date)) {
-        cssClass = 'available'
-        clickListener = this.handleAvailablePeriodClick.bind(this, { dayDetails, index: i })
       } else {
-        cssClass = 'notAvailable'
+        const isRandomlyTaken = this.randomPeriods.find(period => period.dayNumber === dayDetails.date.getDay() && period.periodNumber === (initialyAvailablePeriodIndex))
+        if (isRandomlyTaken) {
+          cssClass = 'taken'
+        } else if (thisType === 'AVAILABLE' && !this.allAvailableWeekPeriodsSelected && !this.isPeriodSelectedOnThisDay(dayDetails.date)) {
+          cssClass = 'available'
+          clickListener = this.handleAvailablePeriodClick.bind(this, { dayDetails, index: i })
+        } else {
+          cssClass = 'notAvailable'
+        }
       }
 
       dayPeriods.push({ key: dayDetails.date.getDay() + i, className: cssClass, onClick: clickListener })
     }
 
     return dayPeriods
-  }
-
-  preparePeriodHours () {
-    const hours = []
-    for (let i = MIN_WORK_HOUR; i <= MAX_WORK_HOUR; i++) {
-      hours.push({ key: i + 'full', periodString: ('0' + i).slice(-2) + ':00' })
-      if (i < MAX_WORK_HOUR) {
-        hours.push({ key: i + 'half', periodString: ('0' + i).slice(-2) + ':30' })
-      }
-    }
-    return hours
   }
 
   render () {
