@@ -1,6 +1,6 @@
 import './Calendar.scss'
 import React, { Component } from 'react'
-import { add, set, areIntervalsOverlapping, isEqual } from 'date-fns'
+import { add, set, areIntervalsOverlapping, isEqual, format } from 'date-fns'
 import DayWorkingDetails from './meta/DayWorkingDetails'
 import { MAX_WEEKLY_PERIODS, PERIOD_LENGTH_MINS, MAX_WORK_HOUR, MIN_WORK_HOUR, DAYS, dailyPeriodsCount } from './meta/Consts'
 
@@ -19,7 +19,7 @@ export default class Calendar extends Component {
   }
 
   isPeriodSelectedOnThisDay (date) {
-    return this.state.selectedPeriods.find(period => isEqual(period.date, date))
+    return this.state.selectedPeriods.find(period => isEqual(period.dayDetails.date, date))
   }
 
   getNextSevenDaysDetails () {
@@ -50,14 +50,22 @@ export default class Calendar extends Component {
     return randomPeriods
   }
 
+  getDatePeriodFromIndex (date, i) {
+    const thisPeriodStart = add(set(date, { hours: MIN_WORK_HOUR, minutes: 0 }), { minutes: i * PERIOD_LENGTH_MINS })
+    return {
+      start: thisPeriodStart,
+      end: add(thisPeriodStart, { minutes: PERIOD_LENGTH_MINS })
+    }
+  }
+
   handleAvailablePeriodClick ({ dayDetails, index, alreadySelected }) {
     if (alreadySelected) {
       this.setState((prevState) => ({
-        selectedPeriods: prevState.selectedPeriods.filter(period => !(isEqual(dayDetails.date, period.date) && period.index === index))
+        selectedPeriods: prevState.selectedPeriods.filter(period => !(isEqual(dayDetails.date, period.dayDetails.date) && period.index === index))
       }))
     } else {
       this.setState((prevState) => ({
-        selectedPeriods: [...prevState.selectedPeriods, { date: dayDetails.date, index }]
+        selectedPeriods: [...prevState.selectedPeriods, { dayDetails, index }]
       }))
     }
   }
@@ -80,12 +88,8 @@ export default class Calendar extends Component {
     for (let i = 0; i < dailyPeriodsCount; i++) {
       let thisType = 'NOT_WORKING'
       if (!isNonWorkingDay) {
-        const thisPeriodStart = add(set(date, { hours: MIN_WORK_HOUR, minutes: 0 }), { minutes: i * PERIOD_LENGTH_MINS })
-        const thisPeriod = {
-          start: thisPeriodStart,
-          end: add(thisPeriodStart, { minutes: PERIOD_LENGTH_MINS })
-        }
-        if (this.state.selectedPeriods.find(period => isEqual(period.date, dayDetails.date) && period.index === i)) {
+        const thisPeriod = this.getDatePeriodFromIndex(date, i)
+        if (this.state.selectedPeriods.find(period => isEqual(period.dayDetails.date, dayDetails.date) && period.index === i)) {
           thisType = 'TAKEN_BY_USER'
           initialyAvailablePeriodIndex++
         } else if (areIntervalsOverlapping(thisPeriod, workingPeriods.beforePause) || areIntervalsOverlapping(thisPeriod, workingPeriods.afterPause)) {
@@ -117,35 +121,49 @@ export default class Calendar extends Component {
         }
       }
 
-      dayPeriods.push({ key: dayDetails.date.getDay() + i, className: cssClass, onClick: clickListener })
+      dayPeriods.push({ key: dayDetails.dayName + i, className: cssClass, onClick: clickListener })
     }
 
     return dayPeriods
   }
 
   render () {
+    const { selectedPeriods } = this.state
     return (
       <main>
-        <div className="calendar">
-          <ul className="calendar__Hours">
-            { this.preparePeriodHours().map(({ key, periodString }) =>
-              <li key={key}>{ periodString }</li>
-            ) }
-          </ul>
-          { this.nextSevenDaysDetails.map(day =>
-            <div key={ day.dateToString } className="calendar__Day">
-              <div className="calendar__DayNameDate">
-                <span>{ day.dayName }</span>
-                <span>{ day.dateToString }</span>
+        <div className="calendar__Container">
+          <div className="calendar">
+            <ul className="calendar__Hours">
+              { this.preparePeriodHours().map(({ key, periodString }) =>
+                <li key={key}>{ periodString }</li>
+              ) }
+            </ul>
+            { this.nextSevenDaysDetails.map(day =>
+              <div key={ day.dateToString } className="calendar__Day">
+                <div className="calendar__DayNameDate">
+                  <span>{ day.dayName }</span>
+                  <span>{ day.dateToString }</span>
+                </div>
+                <ul className="calendar__Periods">
+                  { this.preparePeriodsData(day).map(({ key, className, onClick }) =>
+                    <li key={key} className={className} onClick={onClick}></li>
+                  ) }
+                </ul>
               </div>
-              <ul className="calendar__Periods">
-                { this.preparePeriodsData(day).map(({ key, className, onClick }) =>
-                  <li key={key} className={className} onClick={onClick}></li>
-                ) }
-              </ul>
-            </div>
-          ) }
+            ) }
+          </div>
         </div>
+        {selectedPeriods.length ? <div className="calendar__Selected">
+          <h4>Selected appointments:</h4>
+          <ul className="calendar__SelectedList">{ selectedPeriods.map(period =>
+            <li key={ period.dayDetails.dayName + period.index }>
+              <span>{ period.dayDetails.dayName }</span>
+              <span>{ period.dayDetails.dateToString }</span>
+              <span>{ format(this.getDatePeriodFromIndex(period.dayDetails.date, period.index).start, 'HH:mm') }</span>
+            </li>
+          ) }</ul>
+        </div>
+          : <p className="calendar__InfoText">Select an appointment. It's possible to select one appointment per day and two per week.</p>}
       </main>
     )
   }

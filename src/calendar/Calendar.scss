@@ -4,62 +4,97 @@ $headerHeight: 70px;
     display: flex;
     position: relative;
     margin-left: 55px;
-  }
-  
-  .calendar__Day {
+}
+
+.calendar__Container {
+    display: flex;
+    justify-content: center;
+}
+
+.calendar__Day {
     border: 2px solid black;
     width: 130px;
     margin-left: -2px;
-  }
-  
-  .calendar__DayNameDate {
+}
+
+.calendar__DayNameDate {
     text-align: center;
     border-bottom: 2px solid black;
     height: $headerHeight;
     padding-top: 10px;
     span {
-      display: block;
+        display: block;
     }
-  }
-  
-  .calendar__Hours {
+}
+
+.calendar__Hours {
     position: absolute;
-      left: -55px;
-      top: $headerHeight;
-      margin-top: 2px;
-      font-size: 14px;
+    left: -55px;
+    top: $headerHeight;
+    margin-top: 2px;
+    font-size: 14px;
     li {
-      &:not(:last-child) {
-        margin-bottom: 7px;
-      }
+        &:not(:last-child) {
+            margin-bottom: 7px;
+        }
     }
-  }
-  
-  .calendar__Periods {
+}
+
+.calendar__Periods {
     li {
-      height: 25px;
-      &:not(:last-child) {
-        border-bottom: 1px solid black;
-      }
-      &.available {
-        cursor: pointer;
-        background-color: cyan;
-      }
-      &.taken {
-        background-color: darkblue;
-      }
-      &.pause {
-        background-color: yellow;
-      }
-      &.notWorking {
-        background-color: gray;
-      }
-      &.notAvailable {
-        background-color: blue;
-      }
-      &.takenByUser {
-        cursor: pointer;
-        background-color: lightgreen;
-      }
+        height: 25px;
+        &:not(:last-child) {
+            border-bottom: 1px solid black;
+        }
+        &.available {
+            cursor: pointer;
+            background-color: cyan;
+        }
+        &.taken {
+            background-color: darkblue;
+        }
+        &.pause {
+            background-color: yellow;
+        }
+        &.notWorking {
+            background-color: gray;
+        }
+        &.notAvailable {
+            background-color: blue;
+        }
+        &.takenByUser {
+            cursor: pointer;
+            background-color: lightgreen;
+        }
     }
-  }
+}
+
+.calendar__InfoText {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.calendar__Selected {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    h4 {
+        text-align: center;
+    }
+}
+
+.calendar__SelectedList {
+    font-size: 14px;
+    li {
+        margin-bottom: 5px;
+        display: flex;
+        span {
+            display: block;
+            padding: 0 10px;
+            &:first-child {
+                width: 70px;
+                font-weight: bold;
+            }
+        }
+    }
+}
